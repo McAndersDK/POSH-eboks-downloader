@@ -62,8 +62,8 @@ foreach ($msg in $inbox.ParsedHtml.forms.item("messages_form").getElementsByTagN
         if ($msg.innerHTML -like '*item_unread*') {
             $msgid = ($msg.getElementsByTagName("a")[0].href -split "'")[1]
             $date = ($msg.getElementsByTagName("span") | where className -eq "recieved").innerText
-            $sender = ($msg.getElementsByTagName("span") | where className -eq "sender").innerText -replace "\\",""
-            $subject = ($msg.getElementsByTagName("span") | where className -eq "title").innerText -replace "\\|:",""
+            $sender = ($msg.getElementsByTagName("span") | where className -eq "sender").innerText -replace "\\|/",""
+            $subject = ($msg.getElementsByTagName("span") | where className -eq "title").innerText -replace "\\|:|/",""
 
             write-host "[*] Getting documents for: $subject"
 
@@ -74,21 +74,26 @@ foreach ($msg in $inbox.ParsedHtml.forms.item("messages_form").getElementsByTagN
         
                 $url = $el.href -replace "about:", ""
                 $info = ($el.getelementsbytagname("span") | where classname -eq "info").innertext
-                $title = $el.textContent.replace($info,"").trim() -replace "\\|:",""
+                $title = $el.textContent.replace($info,"").trim() -replace "\\|:|/",""
                 $filetype = $info.split(",")[0].replace("(","").trim()
                 $filename = "$title.$filetype"
-                write-host "[*] Downloading attachment: $filename to folder $folder\$sender\$date $subject"
-                mkdir "$folder\$sender\$date $subject" -Force
-                Invoke-WebRequest "$DOCVIEW_URL$url" -WebSession $session -OutFile "$folder\$sender\$date $subject\$filename"
-
+                $datestamp = get-date $date -Format 'yyyyMMdd'
+                $path = "$folder\$sender\$datestamp $subject"
+                write-host "[*] Downloading attachment: $filename to folder $path"
+                if(!(Test-Path "$path\$filename")) {
+                    $null = mkdir $path -Force
+                    Invoke-WebRequest "$DOCVIEW_URL$url" -WebSession $session -OutFile "$path\$filename"
+                    Get-Item "$path\$filename" | % {$_.LastWriteTime = get-date $date }
+                    get-item $path | % {$_.LastWriteTime = get-date $date }
+                }
             }
         }
     }
     else {
         $msgid = ($msg.getElementsByTagName("a")[0].href -split "'")[1]
         $date = ($msg.getElementsByTagName("span") | where className -eq "recieved").innerText
-        $sender = ($msg.getElementsByTagName("span") | where className -eq "sender").innerText -replace "\\",""
-        $subject = ($msg.getElementsByTagName("span") | where className -eq "title").innerText -replace "\\|:",""
+        $sender = ($msg.getElementsByTagName("span") | where className -eq "sender").innerText -replace "\\|/",""
+        $subject = ($msg.getElementsByTagName("span") | where className -eq "title").innerText -replace "\\|:|/",""
 
         write-host "[*] Getting documents for: $subject"
 
@@ -99,13 +104,17 @@ foreach ($msg in $inbox.ParsedHtml.forms.item("messages_form").getElementsByTagN
         
             $url = $el.href -replace "about:", ""
             $info = ($el.getelementsbytagname("span") | where classname -eq "info").innertext
-            $title = $el.textContent.replace($info,"").trim() -replace "\\|:",""
+            $title = $el.textContent.replace($info,"").trim() -replace "\\|:|/",""
             $filetype = $info.split(",")[0].replace("(","").trim()
             $filename = "$title.$filetype"
-            if(!(Test-Path "$folder\$sender\$date $subject\$filename")) {
-                write-host "[*] Downloading attachment: $filename to folder $folder\$sender\$date $subject"
-                mkdir "$folder\$sender\$date $subject" -Force
-                Invoke-WebRequest "$DOCVIEW_URL$url" -WebSession $session -OutFile "$folder\$sender\$date $subject\$filename"
+            $datestamp = get-date $date -Format 'yyyyMMdd'
+            $path = "$folder\$sender\$datestamp $subject"
+            if(!(Test-Path "$path\$filename")) {
+                write-host "[*] Downloading attachment: $filename to folder $path"
+                $null = mkdir $path -Force
+                Invoke-WebRequest "$DOCVIEW_URL$url" -WebSession $session -OutFile "$path\$filename"
+                Get-Item "$path\$filename" | % {$_.LastWriteTime = get-date $date }
+                get-item $path | % {$_.LastWriteTime = get-date $date }
             }
 
         }
