@@ -20,6 +20,22 @@ $DOC_URL = "https://m.e-boks.dk/inbox_document.aspx"
 $DOCVIEW_URL = "https://m.e-boks.dk/"
 $HEADERS = @{'User-agent' = 'Mozilla/5.0 (Linux; U;) Mobile'}
 
+# Encrypt folder
+ if(!(Test-Path $folder)) {  
+    Write-Host "Creating $folder Folder." 
+    New-Item $folder -ItemType Directory
+    Write-host "Encrypting $folder" 
+    & cipher.exe /e $folder 
+}  
+else { 
+    if(!( (Get-ItemProperty $Folder).attributes -match "Encrypted" )){ 
+        # If Folder Exists but not encrypted, then encrypt it. 
+        Write-Host "$folder is not encrypted, enabling encryption" -ForegroundColor 'Yellow' 
+        & cipher.exe /e /s:$Folder 
+    } 
+} 
+
+
 # setup a session to hold cookies n' stuff
 $s = Invoke-WebRequest $LOGIN_URL -Headers $HEADERS -SessionVariable session
 
