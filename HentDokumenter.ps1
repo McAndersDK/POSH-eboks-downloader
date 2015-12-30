@@ -71,7 +71,7 @@ $msgs = $inbox.Forms.Item("messages_form")
 $auth = $msgs.Fields.auth
 $fuid = $msgs.Fields.fuid
 if($all) {
-    $inbox = Invoke-WebRequest "$INBOX_URL`?fuid=$fuid&vdfp=0&vad=1&vnod=1000" -WebSession $session
+    $inbox = Invoke-WebRequest "$INBOX_URL`?fuid=$fuid&vdfp=0&vad=1" -WebSession $session
 }
 foreach ($msg in $inbox.ParsedHtml.forms.item("messages_form").getElementsByTagName("LI")) {
     if($onlyunread) {
